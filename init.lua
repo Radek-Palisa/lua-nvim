@@ -60,6 +60,8 @@ require('packer').startup(function(use)
   -- Fuzzy Finder Algorithm which requires local dependencies to be built. Only load if `make` is available
   use { 'nvim-telescope/telescope-fzf-native.nvim', run = 'make', cond = vim.fn.executable 'make' == 1 }
 
+  use 'nvim-telescope/telescope-file-browser.nvim'
+
   -- Add custom plugins to packer from ~/.config/nvim/lua/custom/plugins.lua
   local has_plugins, plugins = pcall(require, 'custom.plugins')
   if has_plugins then
@@ -101,8 +103,6 @@ vim.o.hlsearch = false
 -- Make line numbers default
 vim.wo.number = true
 
-vim.o.relativenumber = true
-
 -- Enable mouse mode
 vim.o.mouse = 'a'
 
@@ -119,13 +119,6 @@ vim.o.smartcase = true
 -- Decrease update time
 vim.o.updatetime = 250
 vim.wo.signcolumn = 'yes'
-
--- scrolling
-vim.o.scrolloff = 8
-
--- split windows
-vim.o.splitright = true
-vim.o.splitbelow = true
 
 -- Set colorscheme
 vim.o.termguicolors = true
@@ -198,10 +191,13 @@ require('gitsigns').setup {
   },
 }
 
+local fb_actions = require "telescope".extensions.file_browser.actions
+
 -- [[ Configure Telescope ]]
 -- See `:help telescope` and `:help telescope.setup()`
 require('telescope').setup {
   defaults = {
+    preview_cutoff = 120,
     mappings = {
       i = {
         ['<C-u>'] = false,
@@ -209,10 +205,32 @@ require('telescope').setup {
       },
     },
   },
+  pickers = {
+    buffers = {
+      initial_mode = 'normal'
+    },
+    grep_string = {
+      initial_mode = 'normal'
+    },
+  },
+  extensions = {
+    file_browser = {
+      initial_mode = 'normal',
+      display_stat = false,
+      path = '%:p:h',
+      mappings = {
+        ['n'] = {
+          ['<C-k>'] = fb_actions.goto_parent_dir
+        }
+      }
+    }
+  }
 }
 
 -- Enable telescope fzf native, if installed
 pcall(require('telescope').load_extension, 'fzf')
+
+pcall(require('telescope').load_extension, 'file_browser')
 
 -- See `:help telescope.builtin`
 vim.keymap.set('n', '<leader>?', require('telescope.builtin').oldfiles, { desc = '[?] Find recently opened files' })
@@ -230,6 +248,9 @@ vim.keymap.set('n', '<leader>sh', require('telescope.builtin').help_tags, { desc
 vim.keymap.set('n', '<leader>sw', require('telescope.builtin').grep_string, { desc = '[S]earch current [W]ord' })
 vim.keymap.set('n', '<leader>sg', require('telescope.builtin').live_grep, { desc = '[S]earch by [G]rep' })
 vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
+
+-- Telescope File Browser
+vim.keymap.set('n', '<leader>fb', require('telescope').extensions.file_browser.file_browser, { desc = 'sdf' })
 
 -- [[ Configure Treesitter ]]
 -- See `:help nvim-treesitter`
@@ -328,8 +349,8 @@ local on_attach = function(_, bufnr)
   nmap('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
 
   -- See `:help K` for why this keymap
-  nmap('K', vim.lsp.buf.hover, 'Hover Documentation')
-  nmap('<C-k>', vim.lsp.buf.signature_help, 'Signature Documentation')
+  nmap('H', vim.lsp.buf.hover, 'Hover Documentation')
+  nmap('<C-h>', vim.lsp.buf.signature_help, 'Signature Documentation')
 
   -- Lesser used LSP functionality
   nmap('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
@@ -413,7 +434,7 @@ cmp.setup {
       behavior = cmp.ConfirmBehavior.Replace,
       select = true,
     },
-    ['<Tab>'] = cmp.mapping(function(fallback)
+    ['<C-j>'] = cmp.mapping(function(fallback)
       if cmp.visible() then
         cmp.select_next_item()
       elseif luasnip.expand_or_jumpable() then
@@ -422,7 +443,7 @@ cmp.setup {
         fallback()
       end
     end, { 'i', 's' }),
-    ['<S-Tab>'] = cmp.mapping(function(fallback)
+    ['<C-k>'] = cmp.mapping(function(fallback)
       if cmp.visible() then
         cmp.select_prev_item()
       elseif luasnip.jumpable(-1) then
